@@ -6,9 +6,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Grant execute permission to Gradle
-        run: chmod +x gradlew
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -23,6 +20,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission to Gradle
+        run: chmod +x gradlew
 
       - name: Build with Gradle
         run: ./gradlew build
