@@ -1,166 +1,169 @@
 package com.wardanger;
 
+import com.google.common.collect.Lists;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 
 public class DangerousConfig {
-    public static final Common COMMON;
     public static final ModConfigSpec COMMON_SPEC;
+    public static final DangerousConfig CONFIG;
+
+    public final ModConfigSpec.BooleanValue enableChatAnnouncements;
+    public final ModConfigSpec.DoubleValue baseHealthMultiplier;
+    public final ModConfigSpec.DoubleValue maxHealthMultiplier;
+    public final ModConfigSpec.DoubleValue healthMultiplierIncrement;
+    public final ModConfigSpec.IntValue daysPerIncrement;
+    public final ModConfigSpec.DoubleValue weaponChance;
+    public final ModConfigSpec.DoubleValue enchantmentChance;
+    public final ModConfigSpec.DoubleValue easyGearChance;
+    public final ModConfigSpec.DoubleValue normalGearChance;
+    public final ModConfigSpec.DoubleValue hardGearChance;
+    public final ModConfigSpec.DoubleValue creeperSpeedMultiplier;
+    public final ModConfigSpec.DoubleValue spiderSpeedMultiplier;
+    public final ModConfigSpec.ConfigValue<List<String>> surfaceArmor;
+    public final ModConfigSpec.ConfigValue<List<String>> surfaceWeapons;
+    public final ModConfigSpec.ConfigValue<List<String>> caveArmor;
+    public final ModConfigSpec.ConfigValue<List<String>> caveWeapons;
+    public final ModConfigSpec.ConfigValue<List<String>> deepCaveArmor;
+    public final ModConfigSpec.ConfigValue<List<String>> deepCaveWeapons;
+    public final ModConfigSpec.ConfigValue<List<String>> availableBowEnchantments;
+    public final ModConfigSpec.ConfigValue<List<String>> availableWeaponEnchantments;
+    public final ModConfigSpec.ConfigValue<List<String>> availableArmorEnchantments;
 
     static {
-        Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);
+        Pair<DangerousConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(DangerousConfig::new);
         COMMON_SPEC = specPair.getRight();
-        COMMON = specPair.getLeft();
+        CONFIG = specPair.getLeft();
     }
 
-    public static class Common {
-        public final ModConfigSpec.DoubleValue baseHealthMultiplier;
-        public final ModConfigSpec.DoubleValue maxHealthMultiplier;
-        public final ModConfigSpec.DoubleValue healthMultiplierIncrement;
-        public final ModConfigSpec.IntValue daysPerIncrement;
-        public final ModConfigSpec.DoubleValue weaponChance;
-        public final ModConfigSpec.DoubleValue enchantmentChance;
-        public final ModConfigSpec.ConfigValue<List<String>> availableBowEnchantments;
-        public final ModConfigSpec.ConfigValue<List<String>> availableWeaponEnchantments;
-        public final ModConfigSpec.ConfigValue<List<String>> availableArmorEnchantments;
-        public final ModConfigSpec.DoubleValue easyGearChance;
-        public final ModConfigSpec.DoubleValue normalGearChance;
-        public final ModConfigSpec.DoubleValue hardGearChance;
-        public final ModConfigSpec.DoubleValue creeperSpeedMultiplier;
-        public final ModConfigSpec.DoubleValue spiderSpeedMultiplier;
-        public final ModConfigSpec.ConfigValue<List<String>> surfaceArmor;
-        public final ModConfigSpec.ConfigValue<List<String>> surfaceWeapons;
-        public final ModConfigSpec.ConfigValue<List<String>> deepArmor;
-        public final ModConfigSpec.ConfigValue<List<String>> deepWeapons;
+    DangerousConfig(ModConfigSpec.Builder builder) {
+        builder.push("General Settings");
 
-        public Common(ModConfigSpec.Builder builder) {
-            builder.push("Health Multiplier Settings");
+        enableChatAnnouncements = builder
+                .comment("Enable or disable chat announcements from the mod.")
+                .define("enableChatAnnouncements", true);
 
-            builder.push("Base Health Multiplier");
-            baseHealthMultiplier = builder
-                    .comment(
-                            "Base health multiplier for enemies.",
-                            "This value determines the starting multiplier for enemy health."
-                    )
-                    .defineInRange("baseHealthMultiplier", 1.0, 0.1, 100.0);
-            builder.pop();
+        builder.pop();
 
-            builder.push("Max Health Multiplier");
-            maxHealthMultiplier = builder
-                    .comment(
-                            "Maximum health multiplier for enemies.",
-                            "This is the maximum limit the multiplier can reach."
-                    )
-                    .defineInRange("maxHealthMultiplier", 2.0, 0.1, 10.0);
-            builder.pop();
+        builder.push("Health Multiplier Settings");
 
-            builder.push("Health Multiplier Increment");
-            healthMultiplierIncrement = builder
-                    .comment(
-                            "Increment to increase health multiplier after reaching certain amount of days.",
-                            "This value specifies by how much the multiplier increases."
-                    )
-                    .defineInRange("healthMultiplierIncrement", 0.2, 0.1, 10.0);
-            builder.pop();
+        baseHealthMultiplier = builder
+                .comment("Base health multiplier for enemies.")
+                .defineInRange("baseHealthMultiplier", 1.0, 0.1, 100.0);
 
-            builder.push("Days Per Increment");
-            daysPerIncrement = builder
-                    .comment(
-                            "How many in-game days it takes for the health multiplier to increment."
-                    )
-                    .defineInRange("daysPerIncrement", 24, 1, 100);
-            builder.pop();
+        maxHealthMultiplier = builder
+                .comment("Maximum health multiplier for enemies.")
+                .defineInRange("maxHealthMultiplier", 2.0, 0.1, 10.0);
 
-            builder.push("Gear Spawn Chances");
-            surfaceArmor = builder
-                    .comment("List of armor mobs can spawn with near the surface.")
-                    .define("surfaceArmor", List.of(
-                            "iron_helmet", "iron_chestplate", "iron_leggings", "iron_boots",
-                            "chainmail_helmet", "chainmail_chestplate", "chainmail_leggings", "chainmail_boots",
-                            "leather_helmet", "leather_chestplate", "leather_leggings", "leather_boots"
-                    ));
+        healthMultiplierIncrement = builder
+                .comment("Increment to increase health multiplier after reaching certain amount of days.")
+                .defineInRange("healthMultiplierIncrement", 0.2, 0.1, 10.0);
 
-            surfaceWeapons = builder
-                    .comment("List of weapons mobs can spawn with near the surface.")
-                    .define("surfaceWeapons", List.of(
-                            "stone_sword", "stone_axe", "iron_sword", "iron_axe"
-                    ));
+        daysPerIncrement = builder
+                .comment("How many in-game days it takes for the health multiplier to increment.")
+                .defineInRange("daysPerIncrement", 24, 1, 100);
 
-            deepArmor = builder
-                    .comment("List of armor mobs can spawn with in deep caves.")
-                    .define("deepArmor", List.of(
-                            "diamond_helmet", "diamond_chestplate", "diamond_leggings", "diamond_boots",
-                            "gold_helmet", "gold_chestplate", "gold_leggings", "gold_boots",
-                            "iron_helmet", "iron_chestplate", "iron_leggings", "iron_boots",
-                            "chainmail_helmet", "chainmail_chestplate", "chainmail_leggings", "chainmail_boots"
-                    ));
+        builder.pop();
 
-            deepWeapons = builder
-                    .comment("List of weapons mobs can spawn with in deep caves.")
-                    .define("deepWeapons", List.of(
-                            "iron_sword", "iron_axe", "diamond_sword", "diamond_axe"
-                    ));
+        builder.push("Gear Spawn Chances");
 
-            easyGearChance = builder
-                    .comment("Chance for mobs to spawn with gear in EASY mode.")
-                    .defineInRange("easyGearChance", 0.10, 0.0, 1.0);
+        surfaceArmor = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("List of armor mobs can spawn with near the surface.")
+                .defineList("surfaceArmor",
+                        Lists.newArrayList("minecraft:chainmail_helmet", "minecraft:chainmail_chestplate", "minecraft:chainmail_leggings", "minecraft:chainmail_boots",
+                                "minecraft:leather_helmet", "minecraft:leather_chestplate", "minecraft:leather_leggings", "minecraft:leather_boots"),
+                        obj -> obj instanceof String);
 
-            normalGearChance = builder
-                    .comment("Chance for mobs to spawn with gear in NORMAL mode.")
-                    .defineInRange("normalGearChance", 0.20, 0.0, 1.0);
+        surfaceWeapons = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("List of weapons mobs can spawn with near the surface.")
+                .defineList("surfaceWeapons",
+                        Lists.newArrayList("minecraft:stone_sword", "minecraft:stone_axe", "minecraft:iron_sword", "minecraft:iron_axe"),
+                        obj -> obj instanceof String);
 
-            hardGearChance = builder
-                    .comment("Chance for mobs to spawn with gear in HARD mode.")
-                    .defineInRange("hardGearChance", 0.35, 0.0, 1.0);
-            builder.pop();
+        caveArmor = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("List of armor mobs can spawn with in caves.")
+                .defineList("caveArmor",
+                        Lists.newArrayList(
+                                "minecraft:iron_helmet", "minecraft:iron_chestplate", "minecraft:iron_leggings", "minecraft:iron_boots",
+                                "minecraft:chainmail_helmet", "minecraft:chainmail_chestplate", "minecraft:chainmail_leggings", "minecraft:chainmail_boots"),
+                        obj -> obj instanceof String);
 
-            builder.push("Equipment Settings");
-            weaponChance = builder
-                    .comment("Chance for mob to get a weapon.")
-                    .defineInRange("weaponChance", 0.18, 0.0, 1.0);
+        caveWeapons = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("List of weapons mobs can spawn with in caves.")
+                .defineList("caveWeapons",
+                        Lists.newArrayList("minecraft:iron_sword", "minecraft:iron_axe"),
+                        obj -> obj instanceof String);
 
-            enchantmentChance = builder
-                    .comment("Chance for item to get enchanted.")
-                    .defineInRange("enchantmentChance", 0.25, 0.0, 1.0);
+        deepCaveArmor = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("List of armor mobs can spawn with in deep caves.")
+                .defineList("deepCaveArmor",
+                        Lists.newArrayList("minecraft:diamond_helmet", "minecraft:diamond_chestplate", "minecraft:diamond_leggings", "minecraft:diamond_boots",
+                                "minecraft:golden_helmet", "minecraft:golden_chestplate", "minecraft:golden_leggings", "minecraft:golden_boots",
+                                "minecraft:iron_helmet", "minecraft:iron_chestplate", "minecraft:iron_leggings", "minecraft:iron_boots",
+                                "minecraft:chainmail_helmet", "minecraft:chainmail_chestplate", "minecraft:chainmail_leggings", "minecraft:chainmail_boots"),
+                        obj -> obj instanceof String);
 
-            availableBowEnchantments = builder
-                    .comment("Enchantments available for bows.")
-                    .define("availableBowEnchantments", List.of(
-                            "power", "infinity", "flame", "punch"
-                    ));
+        deepCaveWeapons = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("List of weapons mobs can spawn with in deep caves.")
+                .defineList("deepCaveWeapons",
+                        Lists.newArrayList("minecraft:iron_sword", "minecraft:iron_axe", "minecraft:diamond_sword", "minecraft:diamond_axe"),
+                        obj -> obj instanceof String);
 
-            availableWeaponEnchantments = builder
-                    .comment("Enchantments available for melee weapons.")
-                    .define("availableWeaponEnchantments", List.of(
-                            "sharpness", "smite", "fire_aspect", "unbreaking", "knockback"
-                    ));
+        easyGearChance = builder.comment("Chance for mobs to spawn with gear in EASY mode.")
+                .defineInRange("easyGearChance", 0.10, 0.0, 1.0);
+        normalGearChance = builder.comment("Chance for mobs to spawn with gear in NORMAL mode.")
+                .defineInRange("normalGearChance", 0.20, 0.0, 1.0);
+        hardGearChance = builder.comment("Chance for mobs to spawn with gear in HARD mode.")
+                .defineInRange("hardGearChance", 0.35, 0.0, 1.0);
 
-            availableArmorEnchantments = builder
-                    .comment("Enchantments available for armor.")
-                    .define("availableArmorEnchantments", List.of(
-                            "protection", "unbreaking", "fire_protection", "projectile_protection"
-                    ));
-            builder.pop();
+        builder.pop();
 
-            builder.push("Creeper Speed Settings");
-            creeperSpeedMultiplier = builder
-                    .comment("Multiplier to increase Creeper movement speed.",
-                            "This value controls how fast Creepers can move.",
-                            "Range: 1.0 (normal speed) to 5.0 (very fast)")
-                    .defineInRange("creeperSpeedMultiplier", 1.4, 1.0, 5.0);
-            builder.pop();
+        builder.push("Equipment Settings");
 
-            builder.push("Spider Speed Settings");
-            spiderSpeedMultiplier = builder
-                    .comment("Multiplier to increase Spider movement speed.",
-                            "This value controls how fast Spiders can move.",
-                            "Range: 1.0 (normal speed) to 5.0 (very fast)")
-                    .defineInRange("spiderSpeedMultiplier", 1.25, 1.0, 5.0);
-            builder.pop();
+        weaponChance = builder.comment("Chance for mob to get a weapon.")
+                .defineInRange("weaponChance", 0.18, 0.0, 1.0);
 
-            builder.pop();
-        }
+        enchantmentChance = builder.comment("Chance for item to get enchanted.")
+                .defineInRange("enchantmentChance", 0.25, 0.0, 1.0);
+
+        availableBowEnchantments = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("Enchantments available for bows.")
+                .defineList("availableBowEnchantments",
+                        Lists.newArrayList("minecraft:power", "minecraft:infinity", "minecraft:flame", "minecraft:punch"),
+                        obj -> obj instanceof String);
+
+        availableWeaponEnchantments = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("Enchantments available for melee weapons.")
+                .defineList("availableWeaponEnchantments",
+                        Lists.newArrayList("minecraft:sharpness", "minecraft:smite", "minecraft:fire_aspect",
+                                "minecraft:unbreaking", "minecraft:knockback", "apotheosis:deep_wounds"),
+                        obj -> obj instanceof String);
+
+        availableArmorEnchantments = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
+                .comment("Enchantments available for armor.")
+                .defineList("availableArmorEnchantments",
+                        Lists.newArrayList("minecraft:protection", "minecraft:unbreaking", "minecraft:fire_protection",
+                                "minecraft:projectile_protection"),
+                        obj -> obj instanceof String);
+
+        builder.pop();
+
+        builder.push("Creeper Speed Settings");
+
+        creeperSpeedMultiplier = builder
+                .comment("Multiplier to increase Creeper movement speed.")
+                .defineInRange("creeperSpeedMultiplier", 1.4, 1.0, 5.0);
+
+        builder.pop();
+
+        builder.push("Spider Speed Settings");
+
+        spiderSpeedMultiplier = builder
+                .comment("Multiplier to increase Spider movement speed.")
+                .defineInRange("spiderSpeedMultiplier", 1.25, 1.0, 5.0);
+
+        builder.pop();
     }
 }

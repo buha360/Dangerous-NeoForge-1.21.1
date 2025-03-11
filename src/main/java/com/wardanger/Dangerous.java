@@ -70,10 +70,10 @@ public class Dangerous {
     }
 
     private void loadConfigValues() {
-        healthMultiplier = DangerousConfig.COMMON.baseHealthMultiplier.get().floatValue();
-        maxHealthMultiplier = DangerousConfig.COMMON.maxHealthMultiplier.get();
-        healthMultiplierIncrement = DangerousConfig.COMMON.healthMultiplierIncrement.get();
-        daysPerIncrement = DangerousConfig.COMMON.daysPerIncrement.get();
+        healthMultiplier = DangerousConfig.CONFIG.baseHealthMultiplier.get().floatValue();
+        maxHealthMultiplier = DangerousConfig.CONFIG.maxHealthMultiplier.get();
+        healthMultiplierIncrement = DangerousConfig.CONFIG.healthMultiplierIncrement.get();
+        daysPerIncrement = DangerousConfig.CONFIG.daysPerIncrement.get();
     }
 
     @SubscribeEvent
@@ -103,8 +103,8 @@ public class Dangerous {
 
     private void sendWorldInfoToPlayer(ServerPlayer player, ServerLevel world) {
         long currentDay = world.getDayTime() / 24000L;
-        double healthMultiplier = DangerousConfig.COMMON.baseHealthMultiplier.get().floatValue();
-        int daysPerIncrement = DangerousConfig.COMMON.daysPerIncrement.get();
+        double healthMultiplier = DangerousConfig.CONFIG.baseHealthMultiplier.get().floatValue();
+        int daysPerIncrement = DangerousConfig.CONFIG.daysPerIncrement.get();
 
         long daysUntilNextIncrement = daysPerIncrement - (currentDay % daysPerIncrement);
 
@@ -120,9 +120,11 @@ public class Dangerous {
                 .append(Component.literal(" | Days Until Next Increment: "))
                 .append(Component.literal("" + daysUntilNextIncrement).withStyle(style -> style.withColor(0x55FFFF)));
 
-        player.sendSystemMessage(dangerousMessage);
-        player.sendSystemMessage(emptyLine);
-        player.sendSystemMessage(combinedMessage);
+        if (DangerousConfig.CONFIG.enableChatAnnouncements.get()) {
+            player.sendSystemMessage(dangerousMessage);
+            player.sendSystemMessage(emptyLine);
+            player.sendSystemMessage(combinedMessage);
+        }
     }
 
     @SubscribeEvent
@@ -181,17 +183,19 @@ public class Dangerous {
                 healthMultiplier = (float) maxHealthMultiplier;
             }
 
-            Component message = Component.literal("The enemies become more DANGEROUS!")
-                    .withStyle(style -> style.withBold(true).withColor(0xFF5555));
+            if (DangerousConfig.CONFIG.enableChatAnnouncements.get()) {
+                Component message = Component.literal("The enemies become more DANGEROUS!")
+                        .withStyle(style -> style.withBold(true).withColor(0xFF5555));
 
-            world.getPlayers(player -> true).forEach(player -> player.sendSystemMessage(message));
+                world.getPlayers(player -> true).forEach(player -> player.sendSystemMessage(message));
 
-            if (healthMultiplier == maxHealthMultiplier && !finalFormReached) {
-                finalFormReached = true;
-                Component finalMessage = Component.literal("The enemies have reached their FINAL FORM!")
-                        .withStyle(style -> style.withBold(true).withColor(0xFFAA00));
+                if (healthMultiplier == maxHealthMultiplier && !finalFormReached) {
+                    finalFormReached = true;
+                    Component finalMessage = Component.literal("The enemies have reached their FINAL FORM!")
+                            .withStyle(style -> style.withBold(true).withColor(0xFFAA00));
 
-                world.getPlayers(player -> true).forEach(player -> player.sendSystemMessage(finalMessage));
+                    world.getPlayers(player -> true).forEach(player -> player.sendSystemMessage(finalMessage));
+                }
             }
         }
     }

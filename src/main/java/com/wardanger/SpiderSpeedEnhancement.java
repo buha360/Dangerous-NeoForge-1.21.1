@@ -24,7 +24,7 @@ public class SpiderSpeedEnhancement {
     }
 
     private static void increaseSpiderSpeed(Spider spider) {
-        double speedMultiplier = DangerousConfig.COMMON.spiderSpeedMultiplier.get();
+        double speedMultiplier = DangerousConfig.CONFIG.spiderSpeedMultiplier.get();
 
         AttributeInstance speedAttribute = spider.getAttribute(Attributes.MOVEMENT_SPEED);
         if (speedAttribute != null) {

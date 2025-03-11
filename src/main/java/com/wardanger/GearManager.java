@@ -1,7 +1,8 @@
 package com.wardanger;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -16,19 +17,21 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.enchantment.Enchantment;
+import org.slf4j.Logger;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Random;
 
 public class GearManager {
 
     private static final Random RANDOM = new Random();
     private static final String EQUIPMENT_MODIFIED_TAG = "dangerous_equipment_modified";
-    private static final int SURFACE_Y_THRESHOLD = 12;
+    private static final int SURFACE_Y_THRESHOLD = 64;
+    private static final int CAVE_Y_THRESHOLD = 0;
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public static void equipMobBasedOnDifficulty(Mob mob, ServerLevel world) {
         Difficulty difficulty = world.getDifficulty();
@@ -38,67 +41,62 @@ public class GearManager {
             return;
         }
 
-        if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.fromNamespaceAndPath("minecraft", "zombie"))) {
+        ResourceLocation zombieType = ResourceLocation.fromNamespaceAndPath("minecraft", "zombie");
+        ResourceLocation skeletonType = ResourceLocation.fromNamespaceAndPath("minecraft", "skeleton");
+        ResourceLocation creeperType = ResourceLocation.fromNamespaceAndPath("minecraft", "creeper");
+
+        if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(zombieType)) {
             giveZombieWeapon(mob, world);
-            if (mob.getY() > SURFACE_Y_THRESHOLD) {
-                giveSurfaceLevelGear(mob, difficulty, world);
+            if (mob.getY() >= SURFACE_Y_THRESHOLD) {
+                giveLevelGear(mob, difficulty, DangerousConfig.CONFIG.surfaceArmor.get(), DangerousConfig.CONFIG.surfaceWeapons.get(), world);
+            } else if (mob.getY() >= CAVE_Y_THRESHOLD) {
+                giveLevelGear(mob, difficulty, DangerousConfig.CONFIG.caveArmor.get(), DangerousConfig.CONFIG.caveWeapons.get(), world);
             } else {
-                giveDeepLevelGear(mob, difficulty, world);
+                giveLevelGear(mob, difficulty, DangerousConfig.CONFIG.deepCaveArmor.get(), DangerousConfig.CONFIG.deepCaveWeapons.get(), world);
             }
-        } else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.fromNamespaceAndPath("minecraft", "skeleton"))) {
+        } else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(skeletonType)) {
             giveSkeletonWeapon(mob, world);
-            if (mob.getY() > SURFACE_Y_THRESHOLD) {
-                giveSurfaceLevelGear(mob, difficulty, world);
+            if (mob.getY() >= SURFACE_Y_THRESHOLD) {
+                giveLevelGear(mob, difficulty, DangerousConfig.CONFIG.surfaceArmor.get(), DangerousConfig.CONFIG.surfaceWeapons.get(), world);
+            } else if (mob.getY() >= CAVE_Y_THRESHOLD) {
+                giveLevelGear(mob, difficulty, DangerousConfig.CONFIG.caveArmor.get(), DangerousConfig.CONFIG.caveWeapons.get(), world);
             } else {
-                giveDeepLevelGear(mob, difficulty, world);
+                giveLevelGear(mob, difficulty, DangerousConfig.CONFIG.deepCaveArmor.get(), DangerousConfig.CONFIG.deepCaveWeapons.get(), world);
             }
-        } else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.fromNamespaceAndPath("minecraft", "creeper"))) {
+        } else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(creeperType)) {
             increaseCreeperSpeed((Creeper) mob);
         }
 
         entityData.putBoolean(EQUIPMENT_MODIFIED_TAG, true);
     }
 
-    private static void giveSurfaceLevelGear(Mob mob, Difficulty difficulty, ServerLevel world) {
-        equipArmor(mob, EquipmentSlot.HEAD, DangerousConfig.COMMON.surfaceArmor.get(), difficulty, world);
-        equipArmor(mob, EquipmentSlot.CHEST, DangerousConfig.COMMON.surfaceArmor.get(), difficulty, world);
-        equipArmor(mob, EquipmentSlot.LEGS, DangerousConfig.COMMON.surfaceArmor.get(), difficulty, world);
-        equipArmor(mob, EquipmentSlot.FEET, DangerousConfig.COMMON.surfaceArmor.get(), difficulty, world);
+    private static void giveLevelGear(Mob mob, Difficulty difficulty, List<String> armorList, List<String> weaponList, ServerLevel world) {
+        equipArmorIfChance(mob, EquipmentSlot.HEAD, "helmet", getGearChanceForDifficulty(difficulty), armorList, world);
+        equipArmorIfChance(mob, EquipmentSlot.CHEST, "chestplate", getGearChanceForDifficulty(difficulty), armorList, world);
+        equipArmorIfChance(mob, EquipmentSlot.LEGS, "leggings", getGearChanceForDifficulty(difficulty), armorList, world);
+        equipArmorIfChance(mob, EquipmentSlot.FEET, "boots", getGearChanceForDifficulty(difficulty), armorList, world);
     }
 
-    private static void giveDeepLevelGear(Mob mob, Difficulty difficulty, ServerLevel world) {
-        equipArmor(mob, EquipmentSlot.HEAD, DangerousConfig.COMMON.deepArmor.get(), difficulty, world);
-        equipArmor(mob, EquipmentSlot.CHEST, DangerousConfig.COMMON.deepArmor.get(), difficulty, world);
-        equipArmor(mob, EquipmentSlot.LEGS, DangerousConfig.COMMON.deepArmor.get(), difficulty, world);
-        equipArmor(mob, EquipmentSlot.FEET, DangerousConfig.COMMON.deepArmor.get(), difficulty, world);
-    }
+    private static void equipArmorIfChance(Mob mob, EquipmentSlot slot, String armorType, double chance, List<String> availableArmor, ServerLevel world) {
+        List<String> filteredArmor = availableArmor.stream()
+                .filter(armor -> armor.contains(armorType))
+                .toList();
 
-    private static void equipArmor(Mob mob, EquipmentSlot slot, List<String> armorList, Difficulty difficulty, ServerLevel world) {
-        if (!armorList.isEmpty() && RANDOM.nextDouble() < getGearChanceForDifficulty(difficulty)) {
-            String armorName = armorList.get(RANDOM.nextInt(armorList.size()));
-            ItemStack armor = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("minecraft", armorName)));
+        if (!filteredArmor.isEmpty() && RANDOM.nextDouble() < chance) {
+            String selectedArmor = filteredArmor.get(RANDOM.nextInt(filteredArmor.size()));
+            ItemStack armor = new ItemStack(Objects.requireNonNull(BuiltInRegistries.ITEM.get(ResourceLocation.tryParse(selectedArmor))));
 
-            enchantItem(armor, DangerousConfig.COMMON.availableArmorEnchantments.get(), world);
-
+            enchantItem(armor, DangerousConfig.CONFIG.availableArmorEnchantments.get(), world);
             giveNBT(armor);
-
-            if (slot == EquipmentSlot.HEAD && armor.getItem().canEquip(armor, EquipmentSlot.HEAD, mob)) {
-                mob.setItemSlot(slot, armor);
-            } else if (slot == EquipmentSlot.CHEST && armor.getItem().canEquip(armor, EquipmentSlot.CHEST, mob)) {
-                mob.setItemSlot(slot, armor);
-            } else if (slot == EquipmentSlot.LEGS && armor.getItem().canEquip(armor, EquipmentSlot.LEGS, mob)) {
-                mob.setItemSlot(slot, armor);
-            } else if (slot == EquipmentSlot.FEET && armor.getItem().canEquip(armor, EquipmentSlot.FEET, mob)) {
-                mob.setItemSlot(slot, armor);
-            }
+            mob.setItemSlot(slot, armor);
         }
     }
 
     private static double getGearChanceForDifficulty(Difficulty difficulty) {
         return switch (difficulty) {
-            case EASY -> DangerousConfig.COMMON.easyGearChance.get();
-            case NORMAL -> DangerousConfig.COMMON.normalGearChance.get();
-            case HARD -> DangerousConfig.COMMON.hardGearChance.get();
+            case EASY -> DangerousConfig.CONFIG.easyGearChance.get();
+            case NORMAL -> DangerousConfig.CONFIG.normalGearChance.get();
+            case HARD -> DangerousConfig.CONFIG.hardGearChance.get();
             default -> 0.0;
         };
     }
@@ -108,7 +106,7 @@ public class GearManager {
             return;
         }
 
-        DangerousConfig.COMMON.enchantmentChance.get();
+        DangerousConfig.CONFIG.enchantmentChance.get();
 
         CompoundTag tag = new CompoundTag();
         tag.putBoolean("dangerous_equipment_modified", true);
@@ -117,45 +115,57 @@ public class GearManager {
     }
 
     private static void giveZombieWeapon(Mob mob, ServerLevel world) {
-        if (RANDOM.nextDouble() < DangerousConfig.COMMON.weaponChance.get()) {
-            List<String> weaponList;
+        double weaponChance = DangerousConfig.CONFIG.weaponChance.get();
+        double randomValue = RANDOM.nextDouble();
 
-            if (mob.getY() < SURFACE_Y_THRESHOLD) {
-                weaponList = DangerousConfig.COMMON.deepWeapons.get();
+        if (randomValue < weaponChance) {
+            List<String> weaponList;
+            if (mob.getY() >= SURFACE_Y_THRESHOLD) {
+                weaponList = DangerousConfig.CONFIG.surfaceWeapons.get();
+            } else if (mob.getY() >= CAVE_Y_THRESHOLD) {
+                weaponList = DangerousConfig.CONFIG.caveWeapons.get();
             } else {
-                weaponList = DangerousConfig.COMMON.surfaceWeapons.get();
+                weaponList = DangerousConfig.CONFIG.deepCaveWeapons.get();
             }
 
             String weaponName = weaponList.get(RANDOM.nextInt(weaponList.size()));
-            ItemStack weapon = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("minecraft", weaponName)));
+            ItemStack weapon = getItemByName(weaponName);
 
-            enchantItem(weapon, DangerousConfig.COMMON.availableWeaponEnchantments.get(), world);
-            giveNBT(weapon);
-            mob.setItemSlot(EquipmentSlot.MAINHAND, weapon);
+            if (!weapon.isEmpty()) {
+                enchantItem(weapon, DangerousConfig.CONFIG.availableWeaponEnchantments.get(), world);
+                giveNBT(weapon);
+                mob.setItemSlot(EquipmentSlot.MAINHAND, weapon);
+            }
         }
     }
 
     private static void giveSkeletonWeapon(Mob mob, ServerLevel world) {
-        ItemStack bow = new ItemStack(Items.BOW);
-        enchantItem(bow, DangerousConfig.COMMON.availableBowEnchantments.get(), world);
+        double weaponChance = DangerousConfig.CONFIG.weaponChance.get();
+        double randomValue = RANDOM.nextDouble();
+
+        ItemStack bow = getItemByName("minecraft:bow");
+        enchantItem(bow, DangerousConfig.CONFIG.availableBowEnchantments.get(), world);
         giveNBT(bow);
         mob.setItemSlot(EquipmentSlot.MAINHAND, bow);
 
-        if (RANDOM.nextDouble() < DangerousConfig.COMMON.weaponChance.get()) {
+        if (randomValue < weaponChance) {
             List<String> weaponList;
-
-            if (mob.getY() < SURFACE_Y_THRESHOLD) {
-                weaponList = DangerousConfig.COMMON.deepWeapons.get();
+            if (mob.getY() >= SURFACE_Y_THRESHOLD) {
+                weaponList = DangerousConfig.CONFIG.surfaceWeapons.get();
+            } else if (mob.getY() >= CAVE_Y_THRESHOLD) {
+                weaponList = DangerousConfig.CONFIG.caveWeapons.get();
             } else {
-                weaponList = DangerousConfig.COMMON.surfaceWeapons.get();
+                weaponList = DangerousConfig.CONFIG.deepCaveWeapons.get();
             }
 
             String weaponName = weaponList.get(RANDOM.nextInt(weaponList.size()));
-            ItemStack weapon = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("minecraft", weaponName)));
+            ItemStack weapon = getItemByName(weaponName);
 
-            enchantItem(weapon, DangerousConfig.COMMON.availableWeaponEnchantments.get(), world);
-            giveNBT(weapon);
-            mob.setItemSlot(EquipmentSlot.OFFHAND, weapon);
+            if (!weapon.isEmpty()) {
+                enchantItem(weapon, DangerousConfig.CONFIG.availableWeaponEnchantments.get(), world);
+                giveNBT(weapon);
+                mob.setItemSlot(EquipmentSlot.OFFHAND, weapon);
+            }
         }
     }
 
@@ -164,29 +174,52 @@ public class GearManager {
             return;
         }
 
-        double enchantmentChance = RANDOM.nextDouble();
-        if (enchantmentChance < DangerousConfig.COMMON.enchantmentChance.get()) {
+        double enchantmentChance = DangerousConfig.CONFIG.enchantmentChance.get();
+        double randomValue = RANDOM.nextDouble();
+
+        if (randomValue < enchantmentChance) {
             String selectedEnchantment = availableEnchantments.get(RANDOM.nextInt(availableEnchantments.size()));
-            ResourceLocation enchantmentId = ResourceLocation.tryParse(selectedEnchantment);
 
-            if (enchantmentId != null) {
-                HolderLookup.Provider provider = world.registryAccess();
-                HolderLookup.RegistryLookup<Enchantment> enchantmentRegistry = provider.lookupOrThrow(Registries.ENCHANTMENT);
-                Optional<Holder.Reference<Enchantment>> enchantmentHolder = enchantmentRegistry.get(ResourceKey.create(Registries.ENCHANTMENT, enchantmentId));
-
-                enchantmentHolder.ifPresent(holder -> {
-                    int enchantmentLevel = 1 + RANDOM.nextInt(3);
-                    item.enchant(holder, enchantmentLevel);
-                });
+            if (!selectedEnchantment.contains(":")) {
+                LOGGER.warn("Invalid enchantment format in the config: {}. Correct format: modid:enchantment_name", selectedEnchantment);
+                return;
             }
+
+            ResourceLocation enchantmentId = ResourceLocation.tryParse(selectedEnchantment);
+            Registry<Enchantment> enchantmentRegistry = world.registryAccess().registryOrThrow(Registries.ENCHANTMENT);
+
+            assert enchantmentId != null;
+            if (!enchantmentRegistry.containsKey(enchantmentId)) {
+                LOGGER.warn("Enchantment not found in the registry: {}", selectedEnchantment);
+                return;
+            }
+
+            Holder<Enchantment> enchantmentHolder = enchantmentRegistry.getHolderOrThrow(ResourceKey.create(Registries.ENCHANTMENT, enchantmentId));
+            int enchantmentLevel = 1 + RANDOM.nextInt(enchantmentHolder.value().getMaxLevel());
+            item.enchant(enchantmentHolder, enchantmentLevel);
         }
     }
 
     private static void increaseCreeperSpeed(Creeper creeper) {
         AttributeInstance speedAttribute = creeper.getAttribute(Attributes.MOVEMENT_SPEED);
         if (speedAttribute != null) {
-            double speedMultiplier = DangerousConfig.COMMON.creeperSpeedMultiplier.get();
+            double speedMultiplier = DangerousConfig.CONFIG.creeperSpeedMultiplier.get();
             speedAttribute.setBaseValue(speedAttribute.getBaseValue() * speedMultiplier);
         }
+    }
+
+    private static ItemStack getItemByName(String itemName) {
+        if (!itemName.contains(":")) {
+            LOGGER.warn("Invalid item format in the config: {}. Correct format: modid:item_name", itemName);
+            return ItemStack.EMPTY;
+        }
+
+        ResourceLocation itemId = ResourceLocation.tryParse(itemName);
+        if (itemId == null || !BuiltInRegistries.ITEM.containsKey(itemId)) {
+            LOGGER.warn("Item not found in the registry: {}", itemName);
+            return ItemStack.EMPTY;
+        }
+
+        return new ItemStack(BuiltInRegistries.ITEM.get(itemId));
     }
 }
