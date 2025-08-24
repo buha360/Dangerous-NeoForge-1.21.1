@@ -25,6 +25,9 @@ public class DangerousConfig {
     public final ModConfigSpec.ConfigValue<List<String>> surfaceArmor;
     public final ModConfigSpec.ConfigValue<List<String>> surfaceWeapons;
     public final ModConfigSpec.ConfigValue<List<String>> caveArmor;
+    public final ModConfigSpec.ConfigValue<List<?>> surfaceArmorSets;
+    public final ModConfigSpec.ConfigValue<List<?>> caveArmorSets;
+    public final ModConfigSpec.ConfigValue<List<?>> deepCaveArmorSets;
     public final ModConfigSpec.ConfigValue<List<String>> caveWeapons;
     public final ModConfigSpec.ConfigValue<List<String>> deepCaveArmor;
     public final ModConfigSpec.ConfigValue<List<String>> deepCaveWeapons;
@@ -40,15 +43,12 @@ public class DangerousConfig {
 
     DangerousConfig(ModConfigSpec.Builder builder) {
         builder.push("General Settings");
-
         enableChatAnnouncements = builder
                 .comment("Enable or disable chat announcements from the mod.")
                 .define("enableChatAnnouncements", true);
-
         builder.pop();
 
         builder.push("Health Multiplier Settings");
-
         baseHealthMultiplier = builder
                 .comment("Base health multiplier for enemies.")
                 .defineInRange("baseHealthMultiplier", 1.0, 0.1, 100.0);
@@ -64,11 +64,9 @@ public class DangerousConfig {
         daysPerIncrement = builder
                 .comment("How many in-game days it takes for the health multiplier to increment.")
                 .defineInRange("daysPerIncrement", 24, 1, 100);
-
         builder.pop();
 
         builder.push("Gear Spawn Chances");
-
         surfaceArmor = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
                 .comment("List of armor mobs can spawn with near the surface.")
                 .defineList("surfaceArmor",
@@ -118,10 +116,31 @@ public class DangerousConfig {
         hardGearChance = builder.comment("Chance for mobs to spawn with gear in HARD mode.")
                 .defineInRange("hardGearChance", 0.35, 0.0, 1.0);
 
+        surfaceArmorSets = builder
+                .comment("Full armor sets near surface. Accepts either a String \"[mod:helmet, mod:chest, mod:legs, mod:boots, 25]\" or a list [\"mod:helmet\",\"mod:chest\",\"mod:legs\",\"mod:boots\",25]. Percent: 25->25%, 0.5->0.5%.")
+                .defineList("surfaceArmorSets",
+                        com.google.common.collect.Lists.newArrayList(
+                                "[minecraft:leather_helmet, minecraft:leather_chestplate, minecraft:leather_leggings, minecraft:leather_boots, 1]"),
+                        o -> (o instanceof String) || (o instanceof java.util.List<?>)
+                );
+
+        caveArmorSets = builder
+                .comment("Full armor sets in caves. Same formats as surfaceArmorSets.")
+                .defineList("caveArmorSets",
+                        com.google.common.collect.Lists.newArrayList("[minecraft:iron_helmet, minecraft:iron_chestplate, minecraft:iron_leggings, minecraft:iron_boots, 1]"),
+                        o -> (o instanceof String) || (o instanceof java.util.List<?>)
+                );
+
+        deepCaveArmorSets = builder
+                .comment("Full armor sets in deep caves. Same formats as surfaceArmorSets.")
+                .defineList("deepCaveArmorSets",
+                        com.google.common.collect.Lists.newArrayList("[minecraft:diamond_helmet, minecraft:diamond_chestplate, minecraft:diamond_leggings, minecraft:diamond_boots, 1]"),
+                        o -> (o instanceof String) || (o instanceof java.util.List<?>)
+                );
+
         builder.pop();
 
         builder.push("Equipment Settings");
-
         weaponChance = builder.comment("Chance for mob to get a weapon.")
                 .defineInRange("weaponChance", 0.18, 0.0, 1.0);
 
@@ -147,23 +166,18 @@ public class DangerousConfig {
                         Lists.newArrayList("minecraft:protection", "minecraft:unbreaking", "minecraft:fire_protection",
                                 "minecraft:projectile_protection"),
                         obj -> obj instanceof String);
-
         builder.pop();
 
         builder.push("Creeper Speed Settings");
-
         creeperSpeedMultiplier = builder
                 .comment("Multiplier to increase Creeper movement speed.")
                 .defineInRange("creeperSpeedMultiplier", 1.4, 1.0, 5.0);
-
         builder.pop();
 
         builder.push("Spider Speed Settings");
-
         spiderSpeedMultiplier = builder
                 .comment("Multiplier to increase Spider movement speed.")
                 .defineInRange("spiderSpeedMultiplier", 1.25, 1.0, 5.0);
-
         builder.pop();
     }
 }

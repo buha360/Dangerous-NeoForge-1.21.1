@@ -53,6 +53,7 @@ public class Dangerous {
 
         NeoForge.EVENT_BUS.register(this);
         NeoForge.EVENT_BUS.register(new SkeletonWeaponManager());
+        NeoForge.EVENT_BUS.register(new IllagerWeaponManager());
         NeoForge.EVENT_BUS.register(new MobDeathHandler());
         NeoForge.EVENT_BUS.register(new SpiderSpeedEnhancement());
     }
