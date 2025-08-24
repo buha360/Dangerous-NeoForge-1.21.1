@@ -2,31 +2,48 @@
 
 <p style="text-align: center;">MOVING TO NEOFORGE!!</p><p style="text-align: left;">Dangerous is a balancing mod designed to enhance the challenge of Minecraft, especially when combined with other mods that grant players powerful abilities or additional health. The primary goal of Dangerous is to ensure that as players progress and acquire better gear, the game remains challenging and engaging.</p>
 
-**Key Features:**
+## ✨ Key Features
 
-*   **Dynamic Health Scaling:** Enemies become progressively stronger as the days pass in-game.
-*   **Skeleton Weapon-Swapping:** Skeletons now dynamically switch between ranged and melee weapons based on player proximity.
-*   **Increased Creeper Speed:** Creepers are now 1.4x faster, making them deadlier and requiring quicker reactions from players.
-*   **Increased Spider Speed:** Spiders are now 1.25x faster, adding more intensity to combat.
-*   **Enemy Gear Based on Depth:** Mobs spawn with better armor and weapons the deeper they are in the world. Near the surface, mobs wear weaker armor like leather and iron, while in deep caves, they can spawn with iron, gold and diamond.
-*   **Customizable Enemy Gear:** Configure what armor, weapons, and enchantments mobs can spawn with, allowing for a fine-tuned challenge.
+- **Dynamic health scaling:** Enemies gain extra health as in-game days pass.
+- **Skeleton/Pillager weapon-swapping:** These mobs dynamically switch between bows and melee weapons depending on player distance.
+- **Piglins and Piglin Brutes:** Piglins and zombified piglins can spawn with enchanted gold armor. Brutes may rarely wield **diamond or even netherite axes**, making them truly dangerous!
+- **Illagers with gear:** Vindicators, Evokers, and Illusioners can spawn with iron armor (invisible), and Vindicators may upgrade their iron axes to diamond axes.
+- **Increased creeper speed:** Creepers move **1.4× faster**, forcing quicker reactions.
+- **Increased spider speed:** Spiders move **1.25× faster**, making caves more threatening.
 
-**Config File:**
-Dangerous comes with a fully customizable config file (`dangerous-common.toml`) located in the config folder. This allows players to tweak various aspects of the mod, such as enemy health scaling, gear spawn chances, creeper speed, and available enchantments, ensuring a personalized and balanced experience for every playthrough.
 
-**Balancing with Other Mods:** This mod is useful in balancing with mods that provide players with buffs:
+- **Enemy Gear by Depth:** Mobs spawn with stronger gear the deeper they are
+    - Surface: leather, chainmail, and iron.
+    - Caves: iron and chainmail, with chances for stronger weapons.
+    - Deep caves: gold, iron, and diamond armor/weapons.
+---
 
-*   **Spice of Life: Carrot Edition**
-*   **Artifacts**
-*   **Apotheosis**
-*   **Relics**
-*   **ImprovableSkills**
-*   **Advanced Netherite**
+## ⚙ Config File
+The config (`dangerous-common.toml`) gives full control over gameplay balance
+- Enemy health scaling values.
+- Armor and weapon spawn lists.
+- Full armor set definitions with spawn chances.
+- Enchantment lists for bows, melee weapons, and armor.
+- Creeper and spider speed multipliers.
 
-**Great Compatibility with Enemy Mods:** Dangerous also complements mods like:
+---
 
-*   **Champions-Unofficial**
-*   **Enemy Expansion**
+## 🔗 Balancing with Other Mods
+Dangerous helps balance worlds where the player gets stronger through mods like
+- **Spice of Life: Carrot Edition**
+- **Artifacts**
+- **Apotheosis**
+- **Relics**
+- **ImprovableSkills**
+- **Advanced Netherite**
+
+---
+
+## 🤝 Compatibility with Enemy Mods
+Works great alongside mods that add new enemies
+- **Champions-Unofficial**
+- **Enemy Expansion**
+
 
 These mods add special mobs to the game, and Dangerous helps balance the progression of difficulty, ensuring that no matter how powerful players become, there are always new threats to face.
 
