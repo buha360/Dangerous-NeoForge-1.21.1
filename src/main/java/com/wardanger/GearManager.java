@@ -1,6 +1,7 @@
 package com.wardanger;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.gui.screens.inventory.EnchantmentNames;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
@@ -19,8 +20,13 @@ import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.neoforged.neoforge.common.data.internal.NeoForgeEnchantmentTagsProvider;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.slf4j.Logger;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -390,9 +396,6 @@ public class GearManager {
         if (item.isEmpty()) {
             return;
         }
-
-        DangerousConfig.CONFIG.enchantmentChance.get();
-
         CompoundTag tag = new CompoundTag();
         tag.putBoolean("dangerous_equipment_modified", true);
         CustomData customData = CustomData.of(tag);
@@ -455,34 +458,77 @@ public class GearManager {
     }
 
     private static void enchantItem(ItemStack item, List<String> availableEnchantments, ServerLevel world) {
-        if (item.isEmpty() || availableEnchantments.isEmpty()) {
+        if (item.isEmpty()) return;
+
+        int enchantCount = getRandomEnchantCount();
+        if (enchantCount <= 0) {
+            LOGGER.info("[Enchant Debug] Item {} got 0 enchant rolls (skipped)",
+                    BuiltInRegistries.ITEM.getKey(item.getItem()));
             return;
         }
 
-        double enchantmentChance = DangerousConfig.CONFIG.enchantmentChance.get();
-        double randomValue = RANDOM.nextDouble();
+        Registry<Enchantment> enchantmentRegistry = world.registryAccess().registryOrThrow(Registries.ENCHANTMENT);
+        List<Enchantment> possible = new java.util.ArrayList<>();
 
-        if (randomValue < enchantmentChance) {
-            String selectedEnchantment = availableEnchantments.get(RANDOM.nextInt(availableEnchantments.size()));
-
-            if (!selectedEnchantment.contains(":")) {
-                LOGGER.warn("Invalid enchantment format in the config: {}. Correct format: modid:enchantment_name", selectedEnchantment);
-                return;
+        if (availableEnchantments.size() == 1 && availableEnchantments.getFirst().equals("*")) {
+            for (Enchantment e : enchantmentRegistry) {
+                if (e.canEnchant(item)) possible.add(e);
             }
-
-            ResourceLocation enchantmentId = ResourceLocation.tryParse(selectedEnchantment);
-            Registry<Enchantment> enchantmentRegistry = world.registryAccess().registryOrThrow(Registries.ENCHANTMENT);
-
-            assert enchantmentId != null;
-            if (!enchantmentRegistry.containsKey(enchantmentId)) {
-                LOGGER.warn("Enchantment not found in the registry: {}", selectedEnchantment);
-                return;
+            LOGGER.info("[Enchant Debug] Wildcard: found {} compatible enchantments for {}",
+                    possible.size(), BuiltInRegistries.ITEM.getKey(item.getItem()));
+        } else {
+            for (String id : availableEnchantments) {
+                if (!id.contains(":")) {
+                    LOGGER.warn("[Enchant Debug] Invalid enchant id: {}", id);
+                    continue;
+                }
+                ResourceLocation rl = ResourceLocation.tryParse(id);
+                if (rl == null) continue;
+                Enchantment e = enchantmentRegistry.get(ResourceKey.create(Registries.ENCHANTMENT, rl));
+                if (e != null && e.canEnchant(item)) {
+                    possible.add(e);
+                }
             }
-
-            Holder<Enchantment> enchantmentHolder = enchantmentRegistry.getHolderOrThrow(ResourceKey.create(Registries.ENCHANTMENT, enchantmentId));
-            int enchantmentLevel = 1 + RANDOM.nextInt(enchantmentHolder.value().getMaxLevel());
-            item.enchant(enchantmentHolder, enchantmentLevel);
+            LOGGER.info("[Enchant Debug] Using listed enchants: {} possible for {}",
+                    possible.size(), BuiltInRegistries.ITEM.getKey(item.getItem()));
         }
+
+        if (possible.isEmpty()) {
+            LOGGER.info("[Enchant Debug] No valid enchantments found for {}", BuiltInRegistries.ITEM.getKey(item.getItem()));
+            return;
+        }
+
+        java.util.Collections.shuffle(possible, RANDOM);
+        int applied = Math.min(enchantCount, possible.size());
+        java.util.List<String> appliedNames = new java.util.ArrayList<>();
+
+        Collections.shuffle(possible, RANDOM);
+
+        for (int i = 0; i < applied; i++) {
+            Enchantment e = possible.get(i);
+            int level = 1 + RANDOM.nextInt(e.getMaxLevel());
+            item.enchant(enchantmentRegistry.wrapAsHolder(e), level);
+
+            ResourceLocation id = enchantmentRegistry.getKey(e);
+            if (id == null) id = Registries.ENCHANTMENT.location();
+
+            appliedNames.add((id != null ? id.toString() : "unknown_enchant") + " (lvl " + level + ")");
+        }
+
+        LOGGER.info("[Enchant Debug] Enchanted {} with {} enchant(s): {}",
+                BuiltInRegistries.ITEM.getKey(item.getItem()), applied, appliedNames);
+    }
+
+    private static int getRandomEnchantCount() {
+        double r = RANDOM.nextDouble();
+        double c3 = DangerousConfig.CONFIG.enchantCountLevel3.get();
+        double c2 = DangerousConfig.CONFIG.enchantCountLevel2.get();
+        double c1 = DangerousConfig.CONFIG.enchantCountLevel1.get();
+
+        if (r < c3) return 3;
+        if (r < c3 + c2) return 2;
+        if (r < c3 + c2 + c1) return 1;
+        return 0;
     }
 
     private static void increaseCreeperSpeed(Creeper creeper) {

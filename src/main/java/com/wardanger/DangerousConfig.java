@@ -16,7 +16,9 @@ public class DangerousConfig {
     public final ModConfigSpec.DoubleValue healthMultiplierIncrement;
     public final ModConfigSpec.IntValue daysPerIncrement;
     public final ModConfigSpec.DoubleValue weaponChance;
-    public final ModConfigSpec.DoubleValue enchantmentChance;
+    public final ModConfigSpec.DoubleValue enchantCountLevel1;
+    public final ModConfigSpec.DoubleValue enchantCountLevel2;
+    public final ModConfigSpec.DoubleValue enchantCountLevel3;
     public final ModConfigSpec.DoubleValue easyGearChance;
     public final ModConfigSpec.DoubleValue normalGearChance;
     public final ModConfigSpec.DoubleValue hardGearChance;
@@ -144,8 +146,18 @@ public class DangerousConfig {
         weaponChance = builder.comment("Chance for mob to get a weapon.")
                 .defineInRange("weaponChance", 0.18, 0.0, 1.0);
 
-        enchantmentChance = builder.comment("Chance for item to get enchanted.")
-                .defineInRange("enchantmentChance", 0.25, 0.0, 1.0);
+        enchantCountLevel1 = builder
+                .comment("Chance for item to receive 1 enchantment. (0.35 = 35%)")
+                .defineInRange("enchantCountLevel1", 0.35, 0.0, 1.0);
+
+        enchantCountLevel2 = builder
+                .comment("Chance for item to receive 2 enchantments. (0.15 = 15%)")
+                .defineInRange("enchantCountLevel2", 0.15, 0.0, 1.0);
+
+        enchantCountLevel3 = builder
+                .comment("Chance for item to receive 3 enchantments. (0.05 = 5%)")
+                .defineInRange("enchantCountLevel3", 0.05, 0.0, 1.0);
+
 
         availableBowEnchantments = (ModConfigSpec.ConfigValue<List<String>>) (Object) builder
                 .comment("Enchantments available for bows.")

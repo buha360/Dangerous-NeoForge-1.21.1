@@ -43,6 +43,7 @@ public class Dangerous {
     private int daysPerIncrement;
     private static long lastCheckedDay = 0;
     private boolean finalFormReached = false;
+    private static final int HEALTH_UPDATE_DELAY_TICKS = 5; // ~0.5 s (20 TPS-nél)
 
     public Dangerous(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
@@ -187,31 +188,57 @@ public class Dangerous {
             if (DangerousConfig.CONFIG.enableChatAnnouncements.get()) {
                 Component message = Component.literal("The enemies become more DANGEROUS!")
                         .withStyle(style -> style.withBold(true).withColor(0xFF5555));
+                world.getPlayers(p -> true).forEach(p -> p.sendSystemMessage(message));
+            }
 
-                world.getPlayers(player -> true).forEach(player -> player.sendSystemMessage(message));
+            long targetTick = world.getGameTime() + HEALTH_UPDATE_DELAY_TICKS;
+            world.getServer().execute(() -> applyHealthUpdateDelayed(world, targetTick));
+        }
+    }
 
+    private void applyHealthUpdateDelayed(ServerLevel world, long targetTick) {
+        world.getServer().execute(() -> {
+            if (world.getGameTime() >= targetTick) {
                 if (healthMultiplier == maxHealthMultiplier && !finalFormReached) {
                     finalFormReached = true;
-                    Component finalMessage = Component.literal("The enemies have reached their FINAL FORM!")
-                            .withStyle(style -> style.withBold(true).withColor(0xFFAA00));
-
-                    world.getPlayers(player -> true).forEach(player -> player.sendSystemMessage(finalMessage));
+                    Component finalMsg = Component.literal("The enemies have reached their FINAL FORM!")
+                            .withStyle(s -> s.withBold(true).withColor(0xFFAA00));
+                    world.getPlayers(p -> true).forEach(p -> p.sendSystemMessage(finalMsg));
                 }
+            } else {
+                world.getServer().execute(() -> applyHealthUpdateDelayed(world, targetTick));
             }
-        }
+        });
     }
 
     @SubscribeEvent
     public void onEntitySpawn(EntityJoinLevelEvent event) {
-        if (event.getLevel() instanceof ServerLevel serverWorld && event.getEntity() instanceof Mob mob) {
-            if (mob instanceof Monster) {
-                Difficulty difficulty = serverWorld.getDifficulty();
-                adjustHealthBasedOnDifficulty(mob, difficulty, healthMultiplier);
-                GearManager.equipMobBasedOnDifficulty(mob, serverWorld);
-            }
+        if (!(event.getLevel() instanceof ServerLevel serverWorld)) return;
+        if (!(event.getEntity() instanceof Monster mob)) return;
+
+        CompoundTag tag = mob.getPersistentData();
+        if (tag.getBoolean("Dangerous_Scaled")) return;
+
+        if (!tag.contains("DangerousBaseHealth")) {
+            double baseHealth = Objects.requireNonNull(
+                    mob.getAttribute(Attributes.MAX_HEALTH)
+            ).getBaseValue();
+            tag.putDouble("DangerousBaseHealth", baseHealth);
         }
+
+        double base = tag.getDouble("DangerousBaseHealth");
+        double scaled = base * healthMultiplier;
+
+        Objects.requireNonNull(mob.getAttribute(Attributes.MAX_HEALTH)).setBaseValue(scaled);
+        mob.setHealth((float) scaled);
+
+        tag.putBoolean("Dangerous_Scaled", true);
+
+        GearManager.equipMobBasedOnDifficulty(mob, serverWorld);
     }
 
+    /*
+    - Miért nincs használva ? Már nem emlékszem xd
     private void adjustHealthBasedOnDifficulty(LivingEntity entity, Difficulty difficulty, float multiplier) {
         CompoundTag entityData = entity.getPersistentData();
         if (!entityData.getBoolean(HEALTH_MODIFIED_TAG)) {
@@ -229,6 +256,7 @@ public class Dangerous {
             entityData.putBoolean(HEALTH_MODIFIED_TAG, true);
         }
     }
+     */
 
     @EventBusSubscriber(modid = Dangerous.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {

@@ -68,7 +68,6 @@ public class IllagerWeaponManager {
     private void switchToMelee(Pillager mob) {
         UUID id = mob.getUUID();
 
-        // crossbow → stash (offhandhez nem nyúlunk, ha banner)
         ItemStack main = mob.getMainHandItem();
         ItemStack off  = mob.getOffhandItem();
 
@@ -81,9 +80,9 @@ public class IllagerWeaponManager {
             mob.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
         }
 
-        // melee a mainhandbe, ha offhandben volt (és nem banner)
         main = mob.getMainHandItem();
         off  = mob.getOffhandItem();
+
         if (!isMelee(main) && isMelee(off) && !isOminousBanner(off)) {
             mob.setItemSlot(EquipmentSlot.MAINHAND, off.copy());
             mob.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
@@ -131,19 +130,15 @@ public class IllagerWeaponManager {
         forceAttackMode_ranged(mob);
     }
 
-    // ===== GOAL / STATE KEZELÉS =====
-
     private void forceAttackMode_melee(Pillager mob) {
         mob.stopUsingItem();
         mob.setChargingCrossbow(false);
         mob.getNavigation().stop();
         mob.setAggressive(true);
 
-        // távolíts el MINDEN RangedCrossbowAttackGoal és MeleeAttackGoal példányt
         removeAllGoals(mob, RangedCrossbowAttackGoal.class);
         removeAllGoals(mob, MeleeAttackGoal.class);
 
-        // add csak a melee-t
         mob.goalSelector.addGoal(4, new MeleeAttackGoal(mob, 1.2D, false));
     }
 
@@ -160,7 +155,6 @@ public class IllagerWeaponManager {
     }
 
     private void removeAllGoals(Pillager mob, Class<? extends Goal> type) {
-        // collect, majd mindet vedd le
         List<WrappedGoal> toRemove = new ArrayList<>();
         for (WrappedGoal wg : mob.goalSelector.getAvailableGoals()) {
             if (type.isInstance(wg.getGoal())) {
@@ -171,8 +165,6 @@ public class IllagerWeaponManager {
             mob.goalSelector.removeGoal(wg.getGoal());
         }
     }
-
-    // ===== DÖNTÉS =====
 
     private boolean shouldGoMelee(Pillager mob, boolean hasMelee) {
         if (!hasMelee) return false;
