@@ -40,6 +40,7 @@ public class GearManager {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final double BRUTE_NETHERITE_AXE_CHANCE = 0.05; // 5%
     private static final double BRUTE_DIAMOND_AXE_CHANCE   = 0.15; // 15%
+    private static final double WITHER_SKELETON_IRON_SWORD_CHANCE = 0.35; // 35%
     private record ArmorSet(ResourceLocation head, ResourceLocation chest, ResourceLocation legs, ResourceLocation boots, double chance) {}
 
     public static void equipMobBasedOnDifficulty(Mob mob, ServerLevel world) {
@@ -52,6 +53,7 @@ public class GearManager {
 
         ResourceLocation zombieType = ResourceLocation.fromNamespaceAndPath("minecraft", "zombie");
         ResourceLocation skeletonType = ResourceLocation.fromNamespaceAndPath("minecraft", "skeleton");
+        ResourceLocation witherSkeletonType = ResourceLocation.fromNamespaceAndPath("minecraft", "wither_skeleton");
         ResourceLocation creeperType = ResourceLocation.fromNamespaceAndPath("minecraft", "creeper");
         ResourceLocation zombifiedPiglinType = ResourceLocation.fromNamespaceAndPath("minecraft", "zombified_piglin");
         ResourceLocation piglinType = ResourceLocation.fromNamespaceAndPath("minecraft", "piglin");
@@ -103,7 +105,9 @@ public class GearManager {
                         DangerousConfig.CONFIG.deepCaveArmorSets.get(),
                         world);
             }
-        } else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(creeperType)) {
+        }else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(witherSkeletonType)) {
+            handleWitherSkeletonEquipment(mob, difficulty, world);
+        }else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(creeperType)) {
             increaseCreeperSpeed((Creeper) mob);
         } else if (mob.getType() == BuiltInRegistries.ENTITY_TYPE.get(zombifiedPiglinType)) {
             giveGoldArmorPiecesIfChance(mob, difficulty, world);
@@ -129,6 +133,61 @@ public class GearManager {
         }
 
         entityData.putBoolean(EQUIPMENT_MODIFIED_TAG, true);
+    }
+
+    private static void handleWitherSkeletonEquipment(Mob mob, Difficulty difficulty, ServerLevel world) {
+        double chance = getGearChanceForDifficulty(difficulty);
+
+        // Fej: lánc vagy vas
+        ItemStack head = RANDOM.nextBoolean()
+                ? getItemByName("minecraft:chainmail_helmet")
+                : getItemByName("minecraft:iron_helmet");
+        equipFixedArmorIfChance(mob, EquipmentSlot.HEAD, head, chance, world);
+
+        // Mellvért: lánc vagy vas
+        ItemStack chest = RANDOM.nextBoolean()
+                ? getItemByName("minecraft:chainmail_chestplate")
+                : getItemByName("minecraft:iron_chestplate");
+        equipFixedArmorIfChance(mob, EquipmentSlot.CHEST, chest, chance, world);
+
+        // Nadrág: lánc vagy vas
+        ItemStack legs = RANDOM.nextBoolean()
+                ? getItemByName("minecraft:chainmail_leggings")
+                : getItemByName("minecraft:iron_leggings");
+        equipFixedArmorIfChance(mob, EquipmentSlot.LEGS, legs, chance, world);
+
+        // Csizma: lánc vagy vas
+        ItemStack boots = RANDOM.nextBoolean()
+                ? getItemByName("minecraft:chainmail_boots")
+                : getItemByName("minecraft:iron_boots");
+        equipFixedArmorIfChance(mob, EquipmentSlot.FEET, boots, chance, world);
+
+        upgradeWitherSkeletonSword(mob, world);
+    }
+
+    private static void upgradeWitherSkeletonSword(Mob mob, ServerLevel world) {
+        ItemStack main = mob.getMainHandItem();
+        if (main.isEmpty()) return;
+
+        ResourceLocation currentId = BuiltInRegistries.ITEM.getKey(main.getItem());
+        ResourceLocation stoneSwordId = ResourceLocation.fromNamespaceAndPath("minecraft", "stone_sword");
+
+        if (currentId != null && currentId.equals(stoneSwordId)) {
+            if (RANDOM.nextDouble() < WITHER_SKELETON_IRON_SWORD_CHANCE) {
+                ItemStack ironSword = getItemByName("minecraft:iron_sword");
+                if (!ironSword.isEmpty()) {
+                    enchantItem(ironSword, DangerousConfig.CONFIG.availableWeaponEnchantments.get(), world);
+                    giveNBT(ironSword);
+                    mob.setItemSlot(EquipmentSlot.MAINHAND, ironSword);
+                    return;
+                }
+            }
+            enchantItem(main, DangerousConfig.CONFIG.availableWeaponEnchantments.get(), world);
+            giveNBT(main);
+        } else {
+            enchantItem(main, DangerousConfig.CONFIG.availableWeaponEnchantments.get(), world);
+            giveNBT(main);
+        }
     }
 
     private static final ResourceLocation OMINOUS_BANNER_ID =

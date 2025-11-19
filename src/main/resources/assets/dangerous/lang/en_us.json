@@ -1,5 +1,3 @@
 {
-  "itemGroup.dangerous": "Example Mod Tab",
-  "block.dangerous.example_block": "Example Block",
-  "item.dangerous.example_item": "Example Item"
+  "effect.dangerous.spider_venom": "Spider Venom"
 }

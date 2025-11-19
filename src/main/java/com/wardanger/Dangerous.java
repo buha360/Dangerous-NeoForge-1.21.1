@@ -1,13 +1,13 @@
 package com.wardanger;
 
 import com.mojang.logging.LogUtils;
+import com.wardanger.Spider.SpiderEffect;
+import com.wardanger.Spider.SpiderSpeedEnhancement;
+import com.wardanger.Spider.SpiderVenomEffect;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.Difficulty;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.storage.ServerLevelData;
@@ -51,6 +51,8 @@ public class Dangerous {
         modEventBus.addListener(this::onConfigReload);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, DangerousConfig.COMMON_SPEC);
+
+        SpiderEffect.init(modEventBus);
 
         NeoForge.EVENT_BUS.register(this);
         NeoForge.EVENT_BUS.register(new SkeletonWeaponManager());
